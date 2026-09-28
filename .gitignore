@@ -1,0 +1,22 @@
+# зависимости и сборка
+node_modules/
+dist/
+.cargo-target/
+src-tauri/target/
+# схемы прав, их генерирует tauri-build при каждой сборке
+src-tauri/gen/schemas/
+
+# локальные настройки и секреты
+.env
+.env.*
+*.local
+
+# системное
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# редакторы
+.vscode/*
+!.vscode/extensions.json
+.idea/

@@ -1,0 +1,190 @@
+/* Карточка «Место на диске». Цвет метки зависит от остатка, внутренняя ширина ~344px.
+   Все цвета — из семантических переменных styles.css, поэтому карточка
+   переключается вместе с темой. */
+
+.card-mark.disk-mark-ok {
+  background: var(--mark-violet-bg);
+  color: var(--mark-violet-fg);
+}
+
+.card-mark.disk-mark-warn {
+  background: var(--mark-amber-bg);
+  color: var(--mark-amber-fg);
+}
+
+.card-mark.disk-mark-critical {
+  background: var(--mark-red-bg);
+  color: var(--mark-red-fg);
+}
+
+.dot.disk-dot-ok {
+  background: var(--green);
+}
+
+.dot.disk-dot-warn {
+  background: var(--amber);
+}
+
+.dot.disk-dot-critical {
+  background: var(--red);
+}
+
+/* --- крупный остаток --- */
+
+.disk-free {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  min-width: 0;
+}
+
+.disk-free-value {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.8px;
+  line-height: 1;
+}
+
+.disk-free-label {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* --- список того, что можно убрать --- */
+
+.disk-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.disk-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  border-radius: 7px;
+  padding: 3px 4px;
+}
+
+.disk-row:hover {
+  background: var(--row-hover);
+}
+
+.disk-check {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  flex-shrink: 0;
+  accent-color: var(--violet);
+  cursor: pointer;
+}
+
+.disk-check:disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+
+.disk-row-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+/* подпись у выключенной галочки не должна выглядеть нажимаемой */
+.disk-check:disabled + .disk-row-label {
+  color: var(--muted);
+  cursor: default;
+}
+
+.disk-row-size {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-align: right;
+  min-width: 56px;
+}
+
+/* --- кнопки --- */
+
+.disk-btn {
+  border: 1px solid transparent;
+  border-radius: 9px;
+  padding: 8px 12px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.disk-btn:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.disk-btn-main {
+  width: 100%;
+  background: var(--violet-soft);
+  border-color: var(--violet-border);
+}
+
+.disk-btn-main:hover:enabled {
+  background: var(--violet-strong);
+}
+
+/* --- подтверждение перед удалением --- */
+
+.disk-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border: 1px solid var(--red-border);
+  border-radius: 11px;
+  background: var(--red-soft);
+  padding: 10px;
+}
+
+.disk-confirm-text {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.disk-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.disk-actions .disk-btn {
+  flex: 1 1 0;
+}
+
+.disk-btn-ghost {
+  background: var(--hover);
+  border-color: var(--card-border);
+}
+
+.disk-btn-ghost:hover:enabled {
+  background: var(--hover-strong);
+}
+
+.disk-btn-danger {
+  background: var(--red-soft-strong);
+  border-color: var(--red-border-strong);
+  color: var(--danger-text);
+}
+
+.disk-btn-danger:hover:enabled {
+  background: var(--red-strong);
+}

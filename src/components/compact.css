@@ -1,0 +1,107 @@
+/*
+ * Компактный вид: одна строка плиток на всю ширину окна (400×190).
+ * Все цвета — из семантических переменных styles.css, поэтому плитки
+ * переключаются вместе с темой.
+ */
+
+.tiles {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  /* четыре равных столбца; minmax(0,·) не даёт крупному числу растянуть плитку */
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.tile {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  /* мельче карточных 16px: плитка почти вчетверо меньше карточки */
+  border-radius: 13px;
+  border: 1px solid var(--card-border);
+  background: var(--card);
+  box-shadow: var(--card-shadow);
+  padding: 10px 9px;
+  /* уровень тревоги задаётся одной переменной: её берут и число, и полоса */
+  --tile-accent: var(--violet);
+}
+
+.tile.is-warn {
+  --tile-accent: var(--amber);
+}
+
+.tile.is-alarm {
+  --tile-accent: var(--red);
+  border-color: var(--red-border);
+}
+
+/* данных ещё нет или их не удалось прочитать */
+.tile.is-none {
+  --tile-accent: var(--muted);
+}
+
+.tile-value {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  min-width: 0;
+  color: var(--tile-accent);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.8px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.tile-unit {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.tile-label {
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* состояние словами: цвет плитки — подсказка, а не единственный признак */
+.tile-state {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tile.is-warn .tile-state,
+.tile.is-alarm .tile-state {
+  color: var(--tile-accent);
+}
+
+/* полоса прижата к низу плитки: у всех четырёх она на одной линии */
+.tile-track {
+  margin-top: auto;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--track);
+  overflow: hidden;
+}
+
+.tile-fill {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--tile-accent);
+  transition: width 0.4s ease, background 0.4s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tile-fill {
+    transition: none;
+  }
+}

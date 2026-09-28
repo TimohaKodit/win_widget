@@ -1,0 +1,34 @@
+[package]
+name = "custom-widget"
+version = "0.1.0"
+description = "Виджет: состояние ПК и расход Claude Code"
+edition = "2021"
+# планку задаёт сам tauri 2.12, занижать её в манифесте бессмысленно
+rust-version = "1.90"
+
+[lib]
+name = "app_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# оболочка виджета: автозапуск при входе в Windows и глобальная горячая клавиша
+tauri-plugin-autostart = "2.6.0"
+tauri-plugin-global-shortcut = "2.4.0"
+sysinfo = { version = "0.36.1", default-features = false, features = ["system", "disk"] }
+chrono = { version = "0.4.45", default-features = false, features = ["clock", "std"] }
+
+[profile.dev]
+incremental = true
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

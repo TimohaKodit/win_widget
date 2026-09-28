@@ -1,0 +1,73 @@
+/*
+ * Сворачивание карточек. Обёртка `.shell` ведёт себя как сам блок карточки:
+ * никаких своих отступов, поэтому `gap: 10px` у `.cards` работает как раньше.
+ */
+
+.shell {
+  position: relative;
+  display: block;
+  min-width: 0;
+}
+
+.shell-body {
+  display: block;
+  min-width: 0;
+}
+
+/*
+ * Содержимое скрывается стилями, а не размонтированием: карточка продолжает
+ * получать данные и при разворачивании показывает свежие цифры.
+ * `:has(> .card-head)` оставляет в покое состояния «читаю…» и «ошибка» —
+ * там шапки нет, и скрывать было бы нечего.
+ */
+.shell.is-collapsed .card:has(> .card-head) > *:not(.card-head) {
+  display: none;
+}
+
+/* место под шеврон, чтобы он не налезал на статус справа в шапке */
+.shell .card-head {
+  padding-right: 24px;
+}
+
+.shell-toggle {
+  position: absolute;
+  top: 11px;
+  right: 10px;
+  z-index: 1;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.shell-toggle:hover {
+  background: var(--track);
+  color: var(--text);
+}
+
+.shell-toggle:focus-visible {
+  outline: 2px solid var(--violet);
+  outline-offset: 1px;
+}
+
+.shell-chevron {
+  transition: transform 0.18s ease;
+}
+
+/* развёрнутая карточка — шеврон вверх, свёрнутая — вниз */
+.shell:not(.is-collapsed) .shell-chevron {
+  transform: rotate(180deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shell-chevron {
+    transition: none;
+  }
+}

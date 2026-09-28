@@ -1,0 +1,561 @@
+/* ─────────────────────────────────────────────────────────────────────
+   Темы.
+
+   Тёмная — по умолчанию: действует, когда на <html> нет атрибута
+   data-theme или он равен "dark".
+   Светлая — :root[data-theme="light"]. Плюс системная подсказка
+   @media (prefers-color-scheme: light) для случая, когда пользователь
+   ничего не выбирал явно (она намеренно не действует при
+   data-theme="dark" — явный выбор всегда важнее системного).
+
+   Значения светлой темы живут в одном месте — в наборе --lt-* ниже,
+   а оба «включателя» только переназначают на них семантические
+   переменные. Так значения нельзя развести по двум копиям.
+   ───────────────────────────────────────────────────────────────────── */
+
+:root {
+  /* ── тёмная тема (по умолчанию) ───────────────────────────────── */
+
+  /* фон и поверхности */
+  --bg: #16161d;
+  --panel-border: rgba(255, 255, 255, 0.07);
+  --card: rgba(255, 255, 255, 0.035);
+  --card-border: rgba(255, 255, 255, 0.07);
+  --card-shadow: none;
+  --track: rgba(255, 255, 255, 0.09);
+
+  /* состояния: подсветка кнопок и строк под курсором */
+  --hover: rgba(255, 255, 255, 0.06);
+  --hover-strong: rgba(255, 255, 255, 0.11);
+  --row-hover: rgba(255, 255, 255, 0.04);
+
+  /* полоса прокрутки */
+  --scroll-thumb: rgba(255, 255, 255, 0.14);
+  --scroll-thumb-hover: rgba(255, 255, 255, 0.24);
+
+  /* текст */
+  --text: #ececf1;
+  --muted: #8e8e9e;
+
+  /* акценты */
+  --violet: #7d6bf7;
+  --violet-soft: rgba(125, 107, 247, 0.18);
+  --violet-strong: rgba(125, 107, 247, 0.28);
+  --violet-border: rgba(125, 107, 247, 0.35);
+  --orange: #e67e4d;
+  --orange-soft: rgba(230, 126, 77, 0.18);
+  --green: #4fbe8b;
+  --amber: #e3b341;
+  --red: #e5705f;
+
+  /* тревожные плашки и опасные кнопки */
+  --red-soft: rgba(229, 112, 95, 0.1);
+  --red-soft-strong: rgba(229, 112, 95, 0.22);
+  --red-strong: rgba(229, 112, 95, 0.32);
+  --red-border: rgba(229, 112, 95, 0.35);
+  --red-border-strong: rgba(229, 112, 95, 0.5);
+  --danger-text: #f6b3a9;
+
+  /* квадратные метки в шапках карточек: подложка + цвет значка */
+  --mark-violet-bg: #241f4d;
+  --mark-violet-fg: #9d8ffa;
+  --mark-amber-bg: #3a3018;
+  --mark-amber-fg: #eec765;
+  --mark-red-bg: #3d1f1c;
+  --mark-red-fg: #f0897a;
+  --mark-orange-bg: #3a2116;
+  --mark-orange-fg: #ee9765;
+
+  /* графики */
+  --sparkline-fill: rgba(125, 107, 247, 0.16);
+  --zero-line: rgba(255, 255, 255, 0.16);
+
+  --radius-card: 16px;
+  --radius-window: 20px;
+
+  /* ── значения светлой темы ────────────────────────────────────────
+     Подложка — мягкий тёплый тон (не чистый белый: виджет висит
+     поверх окон, белизна во всю панель режет глаза), карточки белые
+     с тонкой тёплой границей и очень мягкой тенью.
+     Акценты затемнены: те же оттенки, что в тёмной теме, на светлом
+     фоне дают мало контраста. Уровни нагрузки разведены по светлоте:
+     violet L*34 → red L*45 → amber L*56.
+     ─────────────────────────────────────────────────────────────── */
+  --lt-bg: #f2efe8;
+  --lt-panel-border: #d9d1c2;
+  --lt-card: #ffffff;
+  --lt-card-border: #e5dfd3;
+  --lt-card-shadow: 0 1px 2px rgba(60, 48, 26, 0.06), 0 2px 10px rgba(60, 48, 26, 0.04);
+  --lt-track: #e6e1d8;
+
+  --lt-hover: rgba(35, 33, 40, 0.06);
+  --lt-hover-strong: rgba(35, 33, 40, 0.11);
+  --lt-row-hover: rgba(35, 33, 40, 0.045);
+
+  --lt-scroll-thumb: rgba(35, 33, 40, 0.18);
+  --lt-scroll-thumb-hover: rgba(35, 33, 40, 0.3);
+
+  --lt-text: #232128;
+  --lt-muted: #5f5c68;
+
+  --lt-violet: #4f36bb;
+  --lt-violet-soft: rgba(79, 54, 187, 0.1);
+  --lt-violet-strong: rgba(79, 54, 187, 0.18);
+  --lt-violet-border: rgba(79, 54, 187, 0.28);
+  --lt-orange: #a54f12;
+  --lt-orange-soft: rgba(165, 79, 18, 0.1);
+  --lt-green: #157349;
+  --lt-amber: #a8800e;
+  --lt-red: #c4392a;
+
+  --lt-red-soft: rgba(196, 57, 42, 0.07);
+  --lt-red-soft-strong: rgba(196, 57, 42, 0.12);
+  --lt-red-strong: rgba(196, 57, 42, 0.2);
+  --lt-red-border: rgba(196, 57, 42, 0.28);
+  --lt-red-border-strong: rgba(196, 57, 42, 0.45);
+  --lt-danger-text: #8e1a12;
+
+  --lt-mark-violet-bg: #e8e3fa;
+  --lt-mark-violet-fg: #4a33b0;
+  --lt-mark-amber-bg: #f6ecd2;
+  --lt-mark-amber-fg: #7a5806;
+  --lt-mark-red-bg: #fbe2de;
+  --lt-mark-red-fg: #a4231a;
+  --lt-mark-orange-bg: #fbe7da;
+  --lt-mark-orange-fg: #99460f;
+
+  --lt-sparkline-fill: rgba(79, 54, 187, 0.1);
+  --lt-zero-line: rgba(35, 33, 40, 0.18);
+}
+
+/* включатель светлой темы: явный выбор пользователя */
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --bg: var(--lt-bg);
+  --panel-border: var(--lt-panel-border);
+  --card: var(--lt-card);
+  --card-border: var(--lt-card-border);
+  --card-shadow: var(--lt-card-shadow);
+  --track: var(--lt-track);
+
+  --hover: var(--lt-hover);
+  --hover-strong: var(--lt-hover-strong);
+  --row-hover: var(--lt-row-hover);
+
+  --scroll-thumb: var(--lt-scroll-thumb);
+  --scroll-thumb-hover: var(--lt-scroll-thumb-hover);
+
+  --text: var(--lt-text);
+  --muted: var(--lt-muted);
+
+  --violet: var(--lt-violet);
+  --violet-soft: var(--lt-violet-soft);
+  --violet-strong: var(--lt-violet-strong);
+  --violet-border: var(--lt-violet-border);
+  --orange: var(--lt-orange);
+  --orange-soft: var(--lt-orange-soft);
+  --green: var(--lt-green);
+  --amber: var(--lt-amber);
+  --red: var(--lt-red);
+
+  --red-soft: var(--lt-red-soft);
+  --red-soft-strong: var(--lt-red-soft-strong);
+  --red-strong: var(--lt-red-strong);
+  --red-border: var(--lt-red-border);
+  --red-border-strong: var(--lt-red-border-strong);
+  --danger-text: var(--lt-danger-text);
+
+  --mark-violet-bg: var(--lt-mark-violet-bg);
+  --mark-violet-fg: var(--lt-mark-violet-fg);
+  --mark-amber-bg: var(--lt-mark-amber-bg);
+  --mark-amber-fg: var(--lt-mark-amber-fg);
+  --mark-red-bg: var(--lt-mark-red-bg);
+  --mark-red-fg: var(--lt-mark-red-fg);
+  --mark-orange-bg: var(--lt-mark-orange-bg);
+  --mark-orange-fg: var(--lt-mark-orange-fg);
+
+  --sparkline-fill: var(--lt-sparkline-fill);
+  --zero-line: var(--lt-zero-line);
+}
+
+/* тот же набор, но по системной настройке — только пока выбора нет.
+   `:not([data-theme="dark"])` держит приоритет за явным выбором. */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    color-scheme: light;
+
+    --bg: var(--lt-bg);
+    --panel-border: var(--lt-panel-border);
+    --card: var(--lt-card);
+    --card-border: var(--lt-card-border);
+    --card-shadow: var(--lt-card-shadow);
+    --track: var(--lt-track);
+
+    --hover: var(--lt-hover);
+    --hover-strong: var(--lt-hover-strong);
+    --row-hover: var(--lt-row-hover);
+
+    --scroll-thumb: var(--lt-scroll-thumb);
+    --scroll-thumb-hover: var(--lt-scroll-thumb-hover);
+
+    --text: var(--lt-text);
+    --muted: var(--lt-muted);
+
+    --violet: var(--lt-violet);
+    --violet-soft: var(--lt-violet-soft);
+    --violet-strong: var(--lt-violet-strong);
+    --violet-border: var(--lt-violet-border);
+    --orange: var(--lt-orange);
+    --orange-soft: var(--lt-orange-soft);
+    --green: var(--lt-green);
+    --amber: var(--lt-amber);
+    --red: var(--lt-red);
+
+    --red-soft: var(--lt-red-soft);
+    --red-soft-strong: var(--lt-red-soft-strong);
+    --red-strong: var(--lt-red-strong);
+    --red-border: var(--lt-red-border);
+    --red-border-strong: var(--lt-red-border-strong);
+    --danger-text: var(--lt-danger-text);
+
+    --mark-violet-bg: var(--lt-mark-violet-bg);
+    --mark-violet-fg: var(--lt-mark-violet-fg);
+    --mark-amber-bg: var(--lt-mark-amber-bg);
+    --mark-amber-fg: var(--lt-mark-amber-fg);
+    --mark-red-bg: var(--lt-mark-red-bg);
+    --mark-red-fg: var(--lt-mark-red-fg);
+    --mark-orange-bg: var(--lt-mark-orange-bg);
+    --mark-orange-fg: var(--lt-mark-orange-fg);
+
+    --sparkline-fill: var(--lt-sparkline-fill);
+    --zero-line: var(--lt-zero-line);
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  /* окно прозрачное: фон рисует только сама панель */
+  background: transparent;
+  color: var(--text);
+  font-family: Manrope, "Segoe UI", system-ui, sans-serif;
+  font-size: 13px;
+  overflow: hidden;
+  /* виджет не должен вести себя как веб-страница */
+  user-select: none;
+  cursor: default;
+}
+
+.mono {
+  font-family: "JetBrains Mono", Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.panel {
+  height: 100%;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--bg);
+  border-radius: var(--radius-window);
+  border: 1px solid var(--panel-border);
+}
+
+/* за эту область окно таскается мышью */
+.drag {
+  -webkit-app-region: drag;
+}
+
+.drag button,
+.drag a {
+  -webkit-app-region: no-drag;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 2px 2px;
+}
+
+.head-title {
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: -0.2px;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--green);
+}
+
+.grow {
+  flex-grow: 1;
+}
+
+/* Карточки прокручиваются, шапка и подвал остаются на месте */
+.cards {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  /* место под полосу прокрутки, чтобы карточки не прыгали при её появлении */
+  padding-right: 4px;
+  margin-right: -4px;
+}
+
+.cards::-webkit-scrollbar {
+  width: 4px;
+}
+
+.cards::-webkit-scrollbar-thumb {
+  background: var(--scroll-thumb);
+  border-radius: 2px;
+}
+
+.cards::-webkit-scrollbar-thumb:hover {
+  background: var(--scroll-thumb-hover);
+}
+
+.cards::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.muted {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.icon-btn {
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-btn:hover {
+  background: var(--hover);
+  color: var(--text);
+}
+
+.card {
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-card);
+  background: var(--card);
+  box-shadow: var(--card-shadow);
+  padding: 13px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+
+.foot {
+  display: flex;
+  align-items: center;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 0 4px;
+}
+
+/* --- шапка карточки --- */
+
+.card-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.card-mark {
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.card-mark.violet {
+  background: var(--mark-violet-bg);
+  color: var(--mark-violet-fg);
+}
+
+.card-title {
+  font-weight: 700;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.card-sub {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Модель процессора — единственное, что можно обрезать: остальное важнее */
+.card-sub-shrink {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.card-meta {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.strong {
+  color: var(--text);
+}
+
+.dot-warn {
+  background: var(--amber);
+}
+
+/* --- кольцо --- */
+
+.pc-main {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.pc-bars {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  min-width: 0;
+}
+
+.ring {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.ring-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.ring-value {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+.ring-sign {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.ring-label {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: 0.5px;
+}
+
+/* --- полосы --- */
+
+.bar {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.bar-head {
+  display: flex;
+  align-items: baseline;
+}
+
+.bar-label {
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.bar-value {
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.bar-total {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.bar-track {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--track);
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 6px;
+  border-radius: 3px;
+  transition: width 0.4s ease, background 0.4s ease;
+}
+
+/* --- чипы процессов --- */
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 7px;
+  padding: 4px 7px;
+  max-width: 100%;
+}
+
+.chip-violet {
+  background: var(--violet-soft);
+}
+
+.chip-count {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.chip-value {
+  color: var(--muted);
+}

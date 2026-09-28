@@ -1,0 +1,54 @@
+name: Release
+
+on:
+  push:
+    # Сборка запускается при пуше тега вида v0.1.0
+    tags:
+      - 'v*'
+  # Ручной запуск из вкладки Actions
+  workflow_dispatch:
+
+# Нужно для создания релиза и загрузки установщиков
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    # Только Windows: .msi (WiX) собирается исключительно здесь
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Node LTS
+        uses: actions/setup-node@v6
+        with:
+          node-version: 'lts/*'
+          # Кеш npm, требует package-lock.json в репозитории
+          cache: 'npm'
+
+      - name: Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Кеш сборки Rust
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      - name: Установка зависимостей
+        run: npm ci
+
+      - name: Сборка и публикация релиза
+        uses: tauri-apps/tauri-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          # __VERSION__ подставляется из версии приложения
+          tagName: v__VERSION__
+          releaseName: 'Custom v__VERSION__'
+          # Черновик: проверить файлы и опубликовать вручную
+          releaseDraft: true
+          prerelease: false
+          # Оба установщика: .msi и NSIS .exe
+          args: --bundles msi,nsis

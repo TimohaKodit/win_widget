@@ -62,6 +62,12 @@ export function ClaudeCard({ stats, error, refresh }: Props) {
   const near = !over && share >= WARN_SHARE;
   const windowColor = over ? "var(--red)" : near ? "var(--amber)" : "var(--orange)";
 
+  // «лимит исчерпан» — сильное утверждение, и оно уместно только когда порог
+  // подтверждён отказом или задан руками. Если порог всего лишь доказанный
+  // минимум, превышение значит ровно одно: прошлый рекорд побит.
+  const proven = stats.budgetSource === "measured" || stats.budgetSource === "manual";
+  const overLabel = proven ? "лимит исчерпан" : "порог превышен";
+
   const weekPeak = Math.max(1, ...stats.byDay.map((d) => d.tokens));
   const projectPeak = Math.max(1, ...stats.byProject.map((p) => p.tokens));
   const today = todayKey();
@@ -125,11 +131,11 @@ export function ClaudeCard({ stats, error, refresh }: Props) {
 
         <div className="claude-budget">
           <span className="claude-budget-note">
-            {budgetNote(stats.budgetSource, stats.budgetSamples)}
+            {budgetNote(stats.budgetSource, stats.budgetSamples, stats.windowFloor)}
           </span>
           {(over || near) && (
             <span className={over ? "claude-budget-alarm" : "claude-budget-warn"}>
-              {over ? "лимит исчерпан" : "скоро лимит"}
+              {over ? overLabel : "скоро лимит"}
             </span>
           )}
           <span className="grow" />
@@ -181,7 +187,7 @@ export function ClaudeCard({ stats, error, refresh }: Props) {
               </button>
             </div>
             <span className="claude-editor-hint">
-              «Сбросить» вернёт автокалибровку по отказам в логах.
+              «Сбросить» вернёт автокалибровку по логам.
             </span>
             {saveError && <span className="claude-editor-error">{saveError}</span>}
           </div>

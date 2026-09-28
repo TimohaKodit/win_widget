@@ -13,10 +13,11 @@ export interface NamedTokens {
 
 /**
  * Откуда взялся порог 5-часового окна:
- * `measured` — посчитан по отказам в логах, `manual` — задан пользователем,
- * `default` — ничего не известно, показан ориентир.
+ * `measured` — подтверждён отказом в логах, `observed` — взят по окну, прожитому
+ * без отказа, то есть это доказанный минимум и настоящий лимит может быть выше,
+ * `manual` — задан пользователем, `default` — ничего не известно, показан ориентир.
  */
-export type BudgetSource = "measured" | "manual" | "default";
+export type BudgetSource = "measured" | "observed" | "manual" | "default";
 
 /** Зеркало `Settings` из src-tauri/src/settings.rs. */
 export interface Settings {
@@ -48,6 +49,8 @@ export interface ClaudeStats {
   budgetSource: BudgetSource;
   /** Сколько отказов участвовало в измерении порога */
   budgetSamples: number;
+  /** Доказанный минимум: самое большое окно, прожитое без отказа; 0 — нет такого */
+  windowFloor: number;
 }
 
 /** «1 отказу», «2 отказам», «5 отказам» — дательный падеж. */
@@ -56,10 +59,22 @@ export function refusals(count: number): string {
   return `${count} ${single ? "отказу" : "отказам"}`;
 }
 
-/** Подпись под полосой окна: откуда взялся порог. */
-export function budgetNote(source: BudgetSource, samples: number): string {
+/**
+ * Подпись под полосой окна: откуда взялся порог.
+ *
+ * Строка не должна утверждать лишнего. «Измерен по отказам» говорим только
+ * тогда, когда лимит и правда сработал; если порог держится на окне, прожитом
+ * без отказа, честная формулировка — «не меньше столько-то», потому что
+ * настоящий лимит может быть выше.
+ */
+export function budgetNote(
+  source: BudgetSource,
+  samples: number,
+  floor: number,
+): string {
   if (source === "manual") return "порог задан вручную";
   if (source === "measured") return `порог измерен по ${refusals(samples)}`;
+  if (source === "observed") return `не меньше ${tokens(floor)} — точный лимит неизвестен`;
   return "порог не измерен — задайте вручную";
 }
 

@@ -27,9 +27,31 @@ const ACTIVE_SECS: u64 = 5 * 60;
 const DEFAULT_BUDGET: u64 = 30_000_000;
 
 /// Значения поля `budget_source`.
+/// `measured` — порог подтверждён отказом: окно упёрлось в лимит на наших глазах.
+/// `observed` — порог взят по прожитому окну: это доказанный минимум, настоящий
+/// лимит может быть выше. `manual` — задан руками, `default` — ориентир.
 const SOURCE_MEASURED: &str = "measured";
+const SOURCE_OBSERVED: &str = "observed";
 const SOURCE_MANUAL: &str = "manual";
 const SOURCE_DEFAULT: &str = "default";
+
+/// Какой перерыв между соседними записями ещё считается продолжением работы.
+/// Нижняя граница засчитывается только тогда, когда сразу после окна прошёл
+/// ещё один запрос: молчание само по себе ничего не доказывает — человек мог
+/// упереться в лимит и уйти, отказ в лог тогда просто не попадёт.
+const GRACE_MINUTES: i64 = 15;
+
+/// Запас над нижней границей, одна десятая.
+///
+/// Нижняя граница — это окно, которое прожили без отказа, то есть лимит не
+/// меньше неё, но почти наверняка больше: окно кончилось потому, что кончилась
+/// работа, а не потому, что кончился лимит. Брать её как порог «впритык» значит
+/// показывать 100 % там, где до лимита ещё далеко, а ложное «лимит исчерпан»
+/// обесценивает предупреждение вернее, чем запоздалое. Занижать опаснее, чем
+/// завышать, поэтому добавляем десятую часть: даже если лимит ровно равен
+/// нижней границе, полоса дойдёт до 91 % и порог предупреждения (80 %)
+/// сработает вовремя.
+const FLOOR_MARGIN_DIV: u64 = 10;
 
 /// Поля usage, которые складываются в расход одной записи.
 const USAGE_FIELDS: [&str; 4] = [
@@ -78,10 +100,13 @@ pub struct ClaudeStats {
     pub active_projects: Vec<String>,
     /// Действующий порог 5-часового окна в токенах.
     pub window_budget: u64,
-    /// Откуда взялся порог: "measured", "manual" или "default".
+    /// Откуда взялся порог: "measured", "observed", "manual" или "default".
     pub budget_source: String,
     /// Сколько отказов участвовало в измерении порога (0 — измерения нет).
     pub budget_samples: u32,
+    /// Доказанный минимум: самое большое пятичасовое окно, прожитое без отказа.
+    /// 0 — таких окон в логах не нашлось.
+    pub window_floor: u64,
 }
 
 /// Один файл лога вместе с проектом, к которому он относится.
@@ -447,20 +472,125 @@ fn window_reset(agg: &Agg, now: DateTime<Utc>) -> Option<String> {
         .map(to_iso)
 }
 
-/// Измеряет порог окна по отказам.
+/// Одно наблюдение калибровки: сколько токенов и когда.
+#[derive(Clone, Copy)]
+struct Observation {
+    tokens: u64,
+    at: DateTime<Utc>,
+}
+
+/// Результат калибровки — то, что уходит в карточку.
+struct Calibration {
+    budget: u64,
+    source: &'static str,
+    /// Сколько отказов стоит за порогом; 0 — порог держится не на отказах.
+    samples: u32,
+    /// Доказанный минимум без запаса; 0 — не нашёлся.
+    floor: u64,
+}
+
+/// Оценка **сверху**: расход за пять часов перед каждым отказом.
 ///
-/// Момент отказа — это момент, когда лимит был исчерпан ровно, значит расход за
-/// пять часов перед отказом и есть размер окна. Из наблюдений берём **максимум**,
-/// а не среднее: часть запросов могла не попасть в лог (обрыв, битая строка,
-/// удалённая сессия), от чего наблюдение только уменьшается, поэтому большее
-/// число ближе к правде.
-///
-/// Возвращает `None`, если отказов нет или расход вокруг них не записался.
-fn measure_budget(agg: &mut Agg) -> Option<(u64, u32)> {
-    if agg.refusals.is_empty() {
-        return None;
+/// Момент отказа — момент, когда лимит уже исчерпан, значит расход за пять часов
+/// перед ним и есть размер окна. Из наблюдений берём максимум, а не среднее:
+/// часть запросов могла не попасть в лог (обрыв, битая строка, удалённая
+/// сессия), от чего наблюдение только уменьшается, поэтому большее число ближе
+/// к правде. Вторым значением — сколько отказов посмотрели.
+fn measure_ceiling(
+    spend: &[(DateTime<Utc>, u64)],
+    prefix: &[u64],
+    hits: &[DateTime<Utc>],
+) -> (Option<Observation>, u32) {
+    let mut best: Option<Observation> = None;
+    let mut samples = 0;
+
+    for hit in hits {
+        let start = match hit.checked_sub_signed(Span::hours(WINDOW_HOURS)) {
+            Some(start) => start,
+            None => continue,
+        };
+        // spend отсортирован, поэтому границы окна ищем делением пополам
+        let from = spend.partition_point(|(moment, _)| *moment < start);
+        let till = spend.partition_point(|(moment, _)| moment <= hit);
+        let used = prefix[till] - prefix[from];
+
+        samples += 1;
+        // расход вокруг отказа мог не записаться — пустое наблюдение ничего не говорит
+        if used > 0 && best.map(|known| used > known.tokens).unwrap_or(true) {
+            best = Some(Observation {
+                tokens: used,
+                at: *hit,
+            });
+        }
     }
 
+    (best, samples)
+}
+
+/// Оценка **снизу**: самое большое пятичасовое окно, которое прожили без отказа.
+///
+/// Отказ говорит «столько уже нельзя», прожитое окно — «столько точно можно»,
+/// и второе наблюдение ничуть не слабее первого. Окно засчитываем, когда
+/// выполнены два условия: внутри него и сразу за ним нет отказа, и сразу после
+/// него есть ещё один ответ — значит следующий запрос обслужили, а не отклонили.
+/// Без второго условия любая пауза в работе выдавала бы себя за доказательство.
+///
+/// Идём одним проходом: левая граница окна только движется вперёд, расход
+/// внутри — разность префиксных сумм.
+fn measure_floor(
+    spend: &[(DateTime<Utc>, u64)],
+    prefix: &[u64],
+    hits: &[DateTime<Utc>],
+) -> Option<Observation> {
+    let grace = Span::minutes(GRACE_MINUTES);
+    let mut best: Option<Observation> = None;
+    let mut from = 0;
+
+    for (i, (moment, _)) in spend.iter().enumerate() {
+        let start = match moment.checked_sub_signed(Span::hours(WINDOW_HOURS)) {
+            Some(start) => start,
+            None => continue,
+        };
+        // start <= moment, поэтому указатель никогда не обгонит i
+        while spend[from].0 < start {
+            from += 1;
+        }
+
+        // следующая запись — доказательство, что работа продолжилась
+        let next = match spend.get(i + 1) {
+            Some((next, _)) => *next,
+            None => break,
+        };
+        if next.signed_duration_since(*moment) > grace {
+            continue;
+        }
+
+        // первый отказ правее начала окна; если он не дальше следующей записи —
+        // окно в лимит упёрлось, и доказательством «столько можно» не служит
+        let after = hits.partition_point(|hit| *hit <= start);
+        if hits.get(after).map(|hit| *hit <= next).unwrap_or(false) {
+            continue;
+        }
+
+        let used = prefix[i + 1] - prefix[from];
+        if used > 0 && best.map(|known| used > known.tokens).unwrap_or(true) {
+            best = Some(Observation {
+                tokens: used,
+                at: *moment,
+            });
+        }
+    }
+
+    best
+}
+
+/// Сводит обе границы в один порог.
+///
+/// Верхняя граница (отказ) и нижняя (прожитое окно) противоречат друг другу
+/// только на вид: отказ мог прийти раньше, чем окно наполнилось, например из-за
+/// отдельного лимита по другому параметру, а вот прожитые токены — это факт.
+/// Поэтому берём максимум наблюдений, а не «последнее» и не «среднее».
+fn calibrate(agg: &mut Agg) -> Calibration {
     agg.spend.sort_by_key(|(moment, _)| *moment);
     // префиксные суммы: расход за любой интервал — разность двух чисел
     let mut prefix: Vec<u64> = Vec::with_capacity(agg.spend.len() + 1);
@@ -469,38 +599,69 @@ fn measure_budget(agg: &mut Agg) -> Option<(u64, u32)> {
         prefix.push(prefix.last().copied().unwrap_or(0) + tokens);
     }
 
-    let mut best = 0;
-    let mut samples = 0;
+    let mut hits: Vec<DateTime<Utc>> = agg.refusals.values().copied().collect();
+    hits.sort();
 
-    for hit in agg.refusals.values() {
-        let start = match hit.checked_sub_signed(Span::hours(WINDOW_HOURS)) {
-            Some(start) => start,
-            None => continue,
-        };
-        // spend отсортирован, поэтому границы окна ищем делением пополам
-        let from = agg.spend.partition_point(|(moment, _)| *moment < start);
-        let till = agg.spend.partition_point(|(moment, _)| moment <= hit);
-        let used = prefix[till] - prefix[from];
+    let (ceiling, samples) = measure_ceiling(&agg.spend, &prefix, &hits);
+    let floor = measure_floor(&agg.spend, &prefix, &hits);
 
-        samples += 1;
-        if used > best {
-            best = used;
+    // измерения не вышло: отказы если и были, то пустые — считать по ним нечего
+    let default = Calibration {
+        budget: DEFAULT_BUDGET,
+        source: SOURCE_DEFAULT,
+        samples: 0,
+        floor: 0,
+    };
+
+    let floor = match floor {
+        Some(floor) => floor,
+        // нижней границы нет — остаётся отказ, если он был
+        None => {
+            return match ceiling {
+                Some(ceiling) => Calibration {
+                    budget: ceiling.tokens,
+                    source: SOURCE_MEASURED,
+                    samples,
+                    floor: 0,
+                },
+                None => default,
+            }
+        }
+    };
+
+    // отказ выше прожитого окна — окно просто не успело наполниться, верим отказу
+    if let Some(ceiling) = ceiling {
+        if ceiling.tokens >= floor.tokens {
+            return Calibration {
+                budget: ceiling.tokens,
+                source: SOURCE_MEASURED,
+                samples,
+                floor: floor.tokens,
+            };
         }
     }
 
-    if best == 0 {
-        return None;
+    // Прожито больше, чем показал отказ. Если это случилось уже после последнего
+    // отказа — считаем старые отказы историей чужого тарифа и не поминаем их в
+    // карточке: цифра держится на свежих данных, а не на них. Если же прожитое
+    // окно старше отказа, дело скорее в дырах лога, чем в смене тарифа, — порог
+    // тот же (максимум), но отказы остаются как повод посмотреть на дату.
+    let fresher = hits.last().map(|last| floor.at > *last).unwrap_or(true);
+
+    Calibration {
+        budget: floor.tokens + floor.tokens / FLOOR_MARGIN_DIV,
+        source: SOURCE_OBSERVED,
+        samples: if fresher { 0 } else { samples },
+        floor: floor.tokens,
     }
-    Some((best, samples))
 }
 
-/// Действующий порог: ручная настройка важнее измерения, измерение — умолчания.
-fn pick_budget(manual: Option<u64>, measured: Option<(u64, u32)>) -> (u64, &'static str) {
+/// Действующий порог: ручная настройка важнее измерения.
+fn pick_budget(manual: Option<u64>, cal: &Calibration) -> (u64, &'static str) {
     // ноль в настройках означает «не задано», иначе полоса делилась бы на ноль
-    match (manual.filter(|value| *value > 0), measured) {
-        (Some(value), _) => (value, SOURCE_MANUAL),
-        (None, Some((value, _))) => (value, SOURCE_MEASURED),
-        (None, None) => (DEFAULT_BUDGET, SOURCE_DEFAULT),
+    match manual.filter(|value| *value > 0) {
+        Some(value) => (value, SOURCE_MANUAL),
+        None => (cal.budget, cal.source),
     }
 }
 
@@ -533,10 +694,10 @@ pub fn get_claude_stats(app: tauri::AppHandle) -> Result<ClaudeStats, String> {
     let by_day = week_series(&agg, &bounds);
     let week_tokens = by_day.iter().map(|day| day.tokens).sum();
 
-    let measured = measure_budget(&mut agg);
+    let cal = calibrate(&mut agg);
     // настройки читаются без ошибки: нет файла — считаем, что порог не задан
     let manual = crate::settings::load(&app).window_budget;
-    let (window_budget, budget_source) = pick_budget(manual, measured);
+    let (window_budget, budget_source) = pick_budget(manual, &cal);
 
     Ok(ClaudeStats {
         window_tokens: agg.window,
@@ -553,7 +714,8 @@ pub fn get_claude_stats(app: tauri::AppHandle) -> Result<ClaudeStats, String> {
         active_projects: active,
         window_budget,
         budget_source: budget_source.to_string(),
-        // сколько отказов удалось измерить — даже если порог сейчас взят из настроек
-        budget_samples: measured.map(|(_, samples)| samples).unwrap_or(0),
+        // сколько отказов стоит за измерением — даже если порог взят из настроек
+        budget_samples: cal.samples,
+        window_floor: cal.floor,
     })
 }

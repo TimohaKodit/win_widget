@@ -23,8 +23,9 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   align-content: start;
-  /* столбцы не растягиваются по высоте друг под друга */
-  align-items: start;
+  /* столбцы равной высоты: короткий дотягивается до длинного, и последняя
+     карточка в нём заполняет остаток — иначе под ней зияет пустота */
+  align-items: stretch;
   gap: 10px;
   /*
    * Карточки свёрстаны под внутреннюю ширину ~344px (спарклайн в «Этом ПК»
@@ -44,6 +45,23 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+/*
+ * Остаток высоты столбца забирает последняя карточка. Свёрнутую не трогаем:
+ * растянутая на пол-экрана полоска с одним заголовком выглядела бы поломкой.
+ * Когда содержимое выше видимой области, свободного места нет и растягивать
+ * нечего — правило просто не срабатывает.
+ */
+.deck-col > .shell:last-child:not(.is-collapsed) {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* высоту надо протащить через обёртку до самой карточки */
+.deck-col > .shell:last-child:not(.is-collapsed) > .shell-body,
+.deck-col > .shell:last-child:not(.is-collapsed) > .shell-body > .card {
+  height: 100%;
 }
 
 /*

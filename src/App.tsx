@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { ClaudeCard } from "./cards/ClaudeCard";
 import { DiskCard } from "./cards/DiskCard";
@@ -6,6 +6,7 @@ import { PcCard } from "./cards/PcCard";
 import { CardShell } from "./components/CardShell";
 import { CollapseAllButton } from "./components/CollapseAllButton";
 import { CompactBar } from "./components/CompactBar";
+import { ResizeHandles } from "./components/ResizeHandles";
 import { ThemeToggle } from "./components/ThemeToggle";
 import { useClaudeStats } from "./hooks/useClaudeStats";
 import { useCollapsed } from "./hooks/useCollapsed";
@@ -15,6 +16,28 @@ import { useWidgetMode } from "./hooks/useWidgetMode";
 import "./components/layout.css";
 
 const CARD_IDS = ["pc", "claude", "disk"];
+
+/*
+ * Сколько столбцов карточек помещается в окно.
+ *
+ * Карточки свёрстаны под внутреннюю ширину 344px (спарклайн в «Этом ПК» на
+ * ней зафиксирован), а рамка карточки добавляет 14px отступа и 1px границы с
+ * каждой стороны — значит столбец уже 374px обрезал бы график. Поэтому окно
+ * растягивается не в ширину столбцов, а в их количество: один столбец в узком
+ * окне, два в обычном, три в широком. Больше трёх смысла не имеет — карточек
+ * всего три.
+ */
+const DECK_COL_MIN = 374;
+/** Зазор между столбцами — тот же, что в `gap` у `.deck`. */
+const DECK_GAP = 10;
+/** Внутренние отступы панели (14px с двух сторон) плюс место под прокрутку. */
+const DECK_CHROME = 32;
+
+function deckColumns(windowWidth: number, cards: number): number {
+  const room = windowWidth - DECK_CHROME;
+  const fits = Math.floor((room + DECK_GAP) / (DECK_COL_MIN + DECK_GAP));
+  return Math.min(Math.max(fits, 1), cards);
+}
 
 export default function App() {
   // хуки живут только здесь: и плитки, и карточки получают данные сверху,
@@ -27,6 +50,9 @@ export default function App() {
 
   const deck = useRef<HTMLDivElement | null>(null);
   const [hasMore, setHasMore] = useState(false);
+  // окно тянется мышью, поэтому ширина — величина переменная: от неё зависит
+  // число столбцов
+  const [windowWidth, setWindowWidth] = useState(() => window.innerWidth);
 
   /** Осталось ли что-то ниже видимого края — от этого гаснет низ блока. */
   const syncEdge = useCallback(() => {
@@ -45,10 +71,15 @@ export default function App() {
   // и все эти случаи проходят через перерисовку.
   useEffect(syncEdge);
 
-  // смена размера окна меняет высоту блока, а перерисовки при этом нет
+  // смена размера окна меняет и высоту блока (перерисовки при этом нет),
+  // и число столбцов
   useEffect(() => {
-    window.addEventListener("resize", syncEdge);
-    return () => window.removeEventListener("resize", syncEdge);
+    const onResize = () => {
+      setWindowWidth(window.innerWidth);
+      syncEdge();
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
   }, [syncEdge]);
 
   const hide = () => getCurrentWindow().hide();
@@ -85,11 +116,15 @@ export default function App() {
     </CardShell>,
   ];
 
-  // Карточки раскидываются по столбцам через одну: новая попадает в соседний
+  // Карточки раскидываются по столбцам по кругу: новая попадает в соседний
   // столбец, а не удлиняет единственный. Размер окна от них не меняется — если
   // столбцы не влезли в высоту, прокручивается блок карточек.
-  const left = cards.filter((_, i) => i % 2 === 0);
-  const right = cards.filter((_, i) => i % 2 === 1);
+  const cols = deckColumns(windowWidth, cards.length);
+  const columns = Array.from({ length: cols }, (_, col) =>
+    cards.filter((_, i) => i % cols === col)
+  );
+  // строкой, а не числом: числовому значению React приписал бы «px»
+  const deckStyle = { "--deck-cols": String(cols) } as CSSProperties;
 
   return (
     <div className="panel">
@@ -141,9 +176,13 @@ export default function App() {
           className={hasMore ? "deck has-more" : "deck"}
           ref={deck}
           onScroll={syncEdge}
+          style={deckStyle}
         >
-          <div className="deck-col">{left}</div>
-          <div className="deck-col">{right}</div>
+          {columns.map((column, i) => (
+            <div className="deck-col" key={i}>
+              {column}
+            </div>
+          ))}
         </div>
       )}
 
@@ -152,6 +191,9 @@ export default function App() {
         <span className="grow" />
         <span className="mono">v0.1.0</span>
       </footer>
+
+      {/* края окна: у виджета нет рамки, тянуть его иначе не за что */}
+      <ResizeHandles />
     </div>
   );
 }

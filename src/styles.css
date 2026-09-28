@@ -98,33 +98,41 @@
   --lt-text: #232128;
   --lt-muted: #5f5c68;
 
-  --lt-violet: #4f36bb;
-  --lt-violet-soft: rgba(79, 54, 187, 0.1);
-  --lt-violet-strong: rgba(79, 54, 187, 0.18);
-  --lt-violet-border: rgba(79, 54, 187, 0.28);
-  --lt-orange: #a54f12;
-  --lt-orange-soft: rgba(165, 79, 18, 0.1);
-  --lt-green: #157349;
-  --lt-amber: #a8800e;
-  --lt-red: #c4392a;
+  /*
+   * Акценты намеренно приглушены: чистые насыщенные тона на светлом фоне
+   * кричат. Порядок по светлоте сохранён — violet темнее red, red темнее
+   * amber, — чтобы уровни нагрузки различались не только оттенком.
+   * Контраст к белой карточке: violet 5.8, orange 4.7, green 4.6 (всё выше
+   * порога 4.5 для мелкого текста), red 4.3 и amber 3.4 (только графика и
+   * крупные числа, им хватает порога 3.0).
+   */
+  --lt-violet: #6353c4;
+  --lt-violet-soft: rgba(99, 83, 196, 0.1);
+  --lt-violet-strong: rgba(99, 83, 196, 0.18);
+  --lt-violet-border: rgba(99, 83, 196, 0.28);
+  --lt-orange: #b0601f;
+  --lt-orange-soft: rgba(176, 96, 31, 0.1);
+  --lt-green: #2c8360;
+  --lt-amber: #ab8720;
+  --lt-red: #c85647;
 
-  --lt-red-soft: rgba(196, 57, 42, 0.07);
-  --lt-red-soft-strong: rgba(196, 57, 42, 0.12);
-  --lt-red-strong: rgba(196, 57, 42, 0.2);
-  --lt-red-border: rgba(196, 57, 42, 0.28);
-  --lt-red-border-strong: rgba(196, 57, 42, 0.45);
-  --lt-danger-text: #8e1a12;
+  --lt-red-soft: rgba(200, 86, 71, 0.07);
+  --lt-red-soft-strong: rgba(200, 86, 71, 0.12);
+  --lt-red-strong: rgba(200, 86, 71, 0.2);
+  --lt-red-border: rgba(200, 86, 71, 0.28);
+  --lt-red-border-strong: rgba(200, 86, 71, 0.45);
+  --lt-danger-text: #9c332a;
 
-  --lt-mark-violet-bg: #e8e3fa;
-  --lt-mark-violet-fg: #4a33b0;
-  --lt-mark-amber-bg: #f6ecd2;
-  --lt-mark-amber-fg: #7a5806;
-  --lt-mark-red-bg: #fbe2de;
-  --lt-mark-red-fg: #a4231a;
-  --lt-mark-orange-bg: #fbe7da;
-  --lt-mark-orange-fg: #99460f;
+  --lt-mark-violet-bg: #eae6fa;
+  --lt-mark-violet-fg: #5b48bd;
+  --lt-mark-amber-bg: #f7eed8;
+  --lt-mark-amber-fg: #86651a;
+  --lt-mark-red-bg: #fbe6e2;
+  --lt-mark-red-fg: #ae392f;
+  --lt-mark-orange-bg: #fbeade;
+  --lt-mark-orange-fg: #a45623;
 
-  --lt-sparkline-fill: rgba(79, 54, 187, 0.1);
+  --lt-sparkline-fill: rgba(99, 83, 196, 0.09);
   --lt-zero-line: rgba(35, 33, 40, 0.18);
 }
 
